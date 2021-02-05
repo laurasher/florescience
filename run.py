@@ -11,7 +11,7 @@ db = PyMongo(app).db
 
 @app.route('/', methods=['GET'])
 def home():
-    return render_template("home.html")
+    return render_template("index.html")
 
 @app.route('/queryOne', methods=['GET'])
 def queryOne():
