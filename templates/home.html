@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <!-- <script src="https://d3js.org/d3.v6.min.js"></script> -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js" integrity="sha512-csNcFYJniKjJxRWRV1R7fvnXrycHP6qDR21mgz1ZP55xY5d+aHLfo9/FcGDQLfn2IfngbAHd8LdfsagcCqgTcQ==" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        body{
+			font-family: bely,serif;
+			font-weight: 400;
+			font-style: normal;
+			/* background: #0f0d25; */
+            background: black;
+            /* color: white; */
+			margin-top: 0px;
+			margin-left: 0px;
+			margin-right: 0px;
+		}
+        .left-margin{
+            margin-left: 4%;
+        }
+        .top-margin{
+            margin-top: 2%;
+        }
+        .circle{
+            opacity: 0.6;
+        }
+        .text{
+            fill: white;
+            opacity: 0;
+        }
+        .bely-display{
+			font-family: bely-display,sans-serif;
+			font-weight: 400;
+			font-style: normal;
+		}
+		.bely-regular{
+			font-family: bely,serif;
+			font-weight: 400;
+			font-style: normal;
+		}
+		.bely-italic {
+			font-family: bely, serif;
+			font-weight: 400;
+			font-style: italic;
+		}
+		.bely-bold {
+			font-family: bely,serif;
+			font-weight: 700;
+			font-style: normal;
+		}
+		.bely-bold-italic {
+			font-family: bely,serif;
+			font-weight: 700;
+			font-style: italic;
+		}
+        div.tooltip {	
+            position: absolute;			
+            text-align: center;			
+            /* width: 400px;*/
+            width: 200px;	
+            /* height: 60px;*/
+            height: auto;
+            padding: 2px;				
+            background: white;	
+            border: 0px;		
+            border-radius: 5px;			
+            pointer-events: none;			
+        }
+        svg {
+            position: absolute;
+        }
+        #viz{
+            border-style: solid;
+            border-color: white;
+            width: 58%;
+            min-height: 800px;
+            height: 100%;
+            float: left;
+        }
+        #filters{
+            float: right;
+            /* height: 1000px; */
+            min-height: 500px;
+            height: 100%;
+            width: 40%;
+            border-style: solid;
+            border-color: white;
+        }
+        #title{
+            font-size: 34px;
+            margin-bottom: 0px;
+            color: white;
+        }
+        .bar{
+            fill: white;
+        }
+        .axis line{
+            stroke: white;
+            display: none;
+        }
+        .axis path{
+            stroke: white;
+            display: none;
+        }
+        .axis text{
+            fill: white;
+        }
+        .brush{
+            border-width: 0px;
+            border-style: none;
+        }
+    </style>
+</head>
+<body onload="getAll()">
+    <div class='left-margin top-margin'>
+        <p id='title' >Florescience</p>
+    </div>
+    <div id='viz'></div>
+    <div id='filters'></div>
+</body>
+<script>
+    dot_data = []
+    var parseTime = d3.timeParse("%Y-%m-%d");
+    // Update viz with response json
+    var viz_svg = d3.select("#viz")
+        .append("svg")
+        .attr("viewBox", `-350 -300 1200 700`) //x_shift y_shift x_size y_size
+
+    /* Define the div for the tooltip */
+    var div = d3.select("#viz").append("div")
+            .attr("class", "tooltip")
+            .style("opacity", 0);
+            
+    function draw(data){
+        console.log('Draw the circles')
+        console.log(data)
+        viz_svg.html("")
+        
+        /* Define the data for the circles */
+        var elem = viz_svg.selectAll("g circleText")
+            .data(data)
+        /*Create and place the "blocks" containing the circle and the text */  
+        var elemEnter = elem.enter()
+            .append("g")
+
+        /*Create the circle for each block */
+        var circle = elemEnter.append("circle")
+            .attr('cx', function(d, i) { return(d.p_radius * Math.cos(d.p_theta)); })
+            .attr('cy', function(d, i) { return(d.p_radius * Math.sin(d.p_theta)); })
+            .attr("r", 0.8)
+            .attr("class", "circle")
+            .attr("fill", function(d) { return(d.p_color); })
+        var big_circle = elemEnter.append("circle")
+            .attr('cx', function(d, i) { return(d.p_radius * Math.cos(d.p_theta)); })
+            .attr('cy', function(d, i) { return(d.p_radius * Math.sin(d.p_theta)); })
+            .attr("r", 3)
+            .attr("class", "circle")
+            .style("opacity", 0)
+            .on("mouseover", function(d) {
+                div.transition()		
+                    .duration(200)		
+                    .style("opacity", .9);		
+                div.html(d.title + "<br/>"  + d.date + "<br/>" + d.topic + "/ " + d.topic_sub)
+                    .style("font-size", "12px")
+                    .style("left", (d3.event.pageX) + "px")	
+                    .style("top", (d3.event.pageY) + "px");
+                })					
+            .on("mouseout", function(d) {		
+                div.transition()		
+                    .duration(500)		
+                    .style("opacity", 0);	
+            });
+        circle.exit().remove();
+    }
+    function drawTsBars(data){
+        let barwidth = 0.8
+        let margin = {top: 70, right: 40, bottom: 40, left: 40},
+        width = 350 - margin.left - margin.right,
+        height = 200 - margin.top - margin.bottom;
+
+        // set the ranges
+        // let x = d3.scaleBand().range([0, width]).domain(data.map(function(d) { return d.date; }));
+        let x = d3.scaleLinear().range([0, width]).domain([0, data.length]);
+        let y = d3.scaleLinear().range([height, 0]).domain([0, d3.max(data, function(d) { return d.record_count; })]);
+
+        let svg = d3.select("#filters").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            // .attr("viewBox", [0,0, 100, 100])
+            .append("g")
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // append the rectangles for the bar chart
+        bars = svg.selectAll(".bar")
+            .data(data)
+            .enter().append("rect")
+            .attr("class", "bar")
+            .attr("x", function(d) { return x(d.index); })
+            .attr("width", barwidth)
+            .attr("y", function(d) { return y(d.record_count); })
+            .attr("height", function(d) { return height - y(d.record_count); });
+
+        // add the x Axis
+        svg.append("g")
+            .attr("transform", "translate(0," + height + ")")
+            .attr("class", "axis")
+            // .call(d3.axisBottom(x));
+
+        // add the y Axis
+        svg.append("g")
+            .attr("class", "axis")
+            .call(d3.axisRight(y).ticks(1))
+            .attr("transform", "translate(" + width + "," + -4 + ")")
+
+
+        var brush = d3.brushX()
+            .extent([[0, 0], [width, height]])
+            .on("end", brushed);
+
+        svg.append("g")
+            .attr("class", "brush")
+            .call(brush)
+
+        function brushed() {
+            var s = d3.event.selection || x.range();
+            p = s.map(x.invert, x);
+            pd = data.filter(d=>(d.index<p[1])&&(d.index>p[0]))
+            lower_lim = pd[0].date
+            upper_lim = pd[pd.length - 1].date
+            //now get  bars with indices b/w this range
+            //filter dot_data to this range
+            new_data = dot_data.filter(d=> (d.js_date>=lower_lim) && (d.js_date<=upper_lim))
+            draw(new_data)
+        }
+    }
+    function getQueryResult(_q){
+        $.ajax({
+        type: "POST",
+        url: "./queryField",
+        contentType: "application/json",
+        dataType: "json",
+        data: JSON.stringify({ 
+                // q: 'finance'
+                // q: 'economics'
+                // q: 'machine learning'
+                // q: 'machine learning'
+                q: _q
+            }),
+        success: function (data) {
+            console.log(data);
+            draw(data);
+        },
+        error: function (error) {
+            console.log("ERROR");
+        },
+        });
+    }
+    function getAll(){
+        $.ajax({
+            type: "GET",
+            url: "./queryAll",
+            dataType: "json",
+            success: function (data) {
+                data.forEach(el => {
+                    el["js_date"] = parseTime(el.date)
+                });
+                dot_data = data
+                draw(dot_data);
+            },
+            error: function (error) {
+                console.log("ERROR");
+            },
+        });
+        $.ajax({
+            type: "GET",
+            url: "./getTs",
+            dataType: "json",
+            success: function (data) {
+                data = data.map( function(d) {
+                    d.date = parseTime(d.date)
+                    d.record_count = +d.record_count
+                    return d
+                });
+                drawTsBars(data);
+            },
+            error: function (error) {
+                console.log("ERROR");
+            },
+        });
+    }
+
+</script>
+</html>
