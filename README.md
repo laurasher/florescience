@@ -17,7 +17,7 @@
 
 ### 3. Populate local database
 
-`git clone git@gitlab.jhuapl.edu:<your_username>/ig.git`
+`git clone https://github.com/laurasher/florescience.git`
 
 `cd ig`
 
